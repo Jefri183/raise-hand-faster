@@ -26,6 +26,7 @@ function joinRoom() {
   document.getElementById("setup").style.display = "none";
   document.getElementById("game").style.display = "block";
 
+  const playersRef = db.ref(`rooms/${roomId}/players`);
   playersRef.on("value", (snapshot) => {
     const players = snapshot.val();
     const status = document.getElementById("status");
@@ -102,4 +103,3 @@ function tap() {
     });
   }, 1000); // beri delay untuk tunggu semua pemain submit
 }
-
