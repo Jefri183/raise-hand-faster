@@ -23,30 +23,48 @@ function createRoom() {
 // ======== JOIN ROOM (PLAYER) ========
 function joinRoom() {
   username = document.getElementById("username").value.trim() || "Anonymous";
+
   roomId = document.getElementById("roomId").value.trim();
   if (!roomId) return alert("Masukkan kode room!");
 
-  const userRef = db.ref(`rooms/${roomId}/players/${username}`);
-  userRef.set({ joinedAt: Date.now() });
-  userRef.onDisconnect().remove();
-
-  if (isHost) {
-    db.ref(`rooms/${roomId}/host`).set(username);
-  }
-
-  document.getElementById("setup").style.display = "none";
-  document.getElementById("game").style.display = "block";
-
-  // Tampilkan peserta real-time
   const playersRef = db.ref(`rooms/${roomId}/players`);
-  playersRef.on("value", (snap) => {
-    const data = snap.val();
-    const status = document.getElementById("status");
-    if (data) {
-      const names = Object.keys(data);
-      status.innerText = `Peserta: ${names.join(", ")}`;
+
+  // Ambil data pemain duluan
+  playersRef.once("value", (snap) => {
+    const players = snap.val() || {};
+
+    // Cek apakah username sudah dipakai
+    if (username === "Anonymous" || players[username]) {
+      // Buat nama unik
+      let i = 1;
+      let base = "Anonymous";
+      while (players[`${base}${i}`]) i++;
+      username = `${base}${i}`;
     }
+
+    // Cek host
+    const hostRef = db.ref(`rooms/${roomId}/host`);
+    hostRef.once("value", (snapHost) => {
+      const hostName = snapHost.val();
+      isHost = !hostName; // Hanya jadi host jika belum ada host di room
+      if (isHost) {
+        hostRef.set(username);
+      }
+
+      // Tambah pemain ke room
+      const userRef = db.ref(`rooms/${roomId}/players/${username}`);
+      userRef.set({ joinedAt: Date.now() });
+      userRef.onDisconnect().remove();
+
+      // Munculkan UI game
+      document.getElementById("setup").style.display = "none";
+      document.getElementById("game").style.display = "block";
+
+      setupListeners();
+    });
   });
+}
+
 
   // Tampilkan hasil realtime
   const responsesRef = db.ref(`rooms/${roomId}/responses`);
@@ -118,5 +136,55 @@ function resetGame() {
   document.getElementById("result").innerText = "";
   document.getElementById("status").innerText = "Game telah di-reset.";
   document.getElementById("tapBtn").disabled = true;
-  document.getElementById("startBtn").style.display = "none";
+  // Jangan hilangkan tombol start jika kamu host!
+  if (isHost) {
+    document.getElementById("startBtn").style.display = "inline";
+  }
+
 }
+
+function setupListeners() {
+  // Pemain
+  const playersRef = db.ref(`rooms/${roomId}/players`);
+  playersRef.on("value", (snap) => {
+    const data = snap.val();
+    const status = document.getElementById("status");
+    if (data) {
+      const names = Object.keys(data);
+      status.innerText = `Peserta: ${names.join(", ")}`;
+    }
+  });
+
+  // Sinyal mulai
+  db.ref(`rooms/${roomId}/signal`).on("value", (snap) => {
+    if (snap.exists()) {
+      signalTime = snap.val();
+      document.getElementById("tapBtn").disabled = false;
+      document.getElementById("status").innerText = "AYO TEKAN SEKARANG!";
+    }
+  });
+
+  // Hasil respon
+  db.ref(`rooms/${roomId}/responses`).on("value", (snap) => {
+    const data = snap.val();
+    if (!data) return;
+    const sorted = Object.entries(data)
+      .map(([name, time]) => ({ name, time }))
+      .sort((a, b) => a.time - b.time);
+
+    let resultText = "📊 Urutan Kecepatan:\n";
+    sorted.forEach((item, i) => {
+      resultText += `${i + 1}. ${item.name} - ${item.time} ms\n`;
+    });
+    document.getElementById("result").innerText = resultText;
+  });
+
+  // Cek host (tampilkan tombol)
+  db.ref(`rooms/${roomId}/host`).on("value", (snap) => {
+    const hostName = snap.val();
+    const show = hostName === username;
+    document.getElementById("startBtn").style.display = show ? "inline" : "none";
+    document.querySelector("button[onclick='resetGame()']").style.display = show ? "inline" : "none";
+  });
+}
+
