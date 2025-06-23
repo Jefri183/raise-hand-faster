@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Siapa Paling Cepat?</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+  <h1>Game Angkat Tangan</h1>
+
+  <div id="setup">
+    <input type="text" id="username" placeholder="Masukkan Nama Anda">
+    <input type="text" id="roomId" placeholder="Masukkan Kode Room (bebas)">
+    <button onclick="joinRoom()">Gabung</button>
+  </div>
+
+  <div id="game" style="display:none;">
+    <p id="status">Menunggu pemain lain...</p>
+    <button id="startBtn" onclick="startGame()" style="display:none;">Mulai Game</button>
+    <button id="tapBtn" onclick="tap()" disabled>Angkat Tangan Sekarang!</button>
+    <p id="result"></p>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
