@@ -26,14 +26,20 @@ function joinRoom() {
   document.getElementById("setup").style.display = "none";
   document.getElementById("game").style.display = "block";
 
-  const playersRef = db.ref(`rooms/${roomId}/players`);
   playersRef.on("value", (snapshot) => {
     const players = snapshot.val();
+    const status = document.getElementById("status");
+  
+    if (players) {
+      const names = Object.keys(players).join(", ");
+      status.innerText = `Peserta: ${names}`;
+    }
+  
     if (players && Object.keys(players).length >= 2) {
-      document.getElementById("status").innerText = "Siap bermain!";
       document.getElementById("startBtn").style.display = "inline";
     }
-  });
+});
+
 
   const signalRef = db.ref(`rooms/${roomId}/signal`);
   signalRef.on("value", (snap) => {
@@ -72,22 +78,28 @@ function tap() {
 
   const now = Date.now();
   const reactionTime = now - signalTime;
+
   db.ref(`rooms/${roomId}/responses/${username}`).set(reactionTime);
 
-  // Cari siapa yang tercepat
-  db.ref(`rooms/${roomId}/responses`).once("value", (snap) => {
-    const data = snap.val();
-    if (!data) return;
-    let winner = null;
-    let minTime = Infinity;
+  // Tunggu sebentar, lalu ambil semua reaksi dan urutkan
+  setTimeout(() => {
+    db.ref(`rooms/${roomId}/responses`).once("value", (snap) => {
+      const data = snap.val();
+      if (!data) return;
 
-    for (let [name, time] of Object.entries(data)) {
-      if (time < minTime) {
-        minTime = time;
-        winner = name;
-      }
-    }
+      // Ubah objek menjadi array, lalu urutkan
+      const sorted = Object.entries(data)
+        .map(([name, time]) => ({ name, time }))
+        .sort((a, b) => a.time - b.time);
 
-    db.ref(`rooms/${roomId}/result`).set({ name: winner, time: minTime });
-  });
+      // Tampilkan semua hasil
+      let resultText = "📊 Urutan Kecepatan:\n";
+      sorted.forEach((item, i) => {
+        resultText += `${i + 1}. ${item.name} - ${item.time} ms\n`;
+      });
+
+      document.getElementById("result").innerText = resultText;
+    });
+  }, 1000); // beri delay untuk tunggu semua pemain submit
 }
+
