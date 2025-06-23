@@ -23,47 +23,55 @@ function createRoom() {
 // ======== JOIN ROOM (PLAYER) ========
 function joinRoom() {
   username = document.getElementById("username").value.trim() || "Anonymous";
-
   roomId = document.getElementById("roomId").value.trim();
   if (!roomId) return alert("Masukkan kode room!");
 
   const playersRef = db.ref(`rooms/${roomId}/players`);
 
-  // Ambil data pemain duluan
+  // Cek semua pemain dulu
   playersRef.once("value", (snap) => {
     const players = snap.val() || {};
 
-    // Cek apakah username sudah dipakai
+    // Cek apakah nama sudah dipakai atau Anonymous
     if (username === "Anonymous" || players[username]) {
-      // Buat nama unik
       let i = 1;
       let base = "Anonymous";
       while (players[`${base}${i}`]) i++;
       username = `${base}${i}`;
     }
 
-    // Cek host
+    // Sekarang cek apakah sudah ada host
     const hostRef = db.ref(`rooms/${roomId}/host`);
-    hostRef.once("value", (snapHost) => {
-      const hostName = snapHost.val();
-      isHost = !hostName; // Hanya jadi host jika belum ada host di room
-      if (isHost) {
+    hostRef.once("value", (hostSnap) => {
+      const existingHost = hostSnap.val();
+      if (!existingHost) {
+        // Kalau belum ada host → user ini jadi host
         hostRef.set(username);
+        isHost = true;
+      } else {
+        isHost = false; // Sudah ada host, tidak boleh ganti
       }
 
-      // Tambah pemain ke room
+      // Tambah pemain
       const userRef = db.ref(`rooms/${roomId}/players/${username}`);
       userRef.set({ joinedAt: Date.now() });
-      userRef.onDisconnect().remove();
+      userRef.onDisconnect().remove(); // kalau koneksi putus
 
-      // Munculkan UI game
+      // Tambahan mekanisme keluar saat reload
+      window.addEventListener('beforeunload', () => {
+        userRef.remove();
+        if (isHost) {
+          db.ref(`rooms/${roomId}`).remove(); // kalau host keluar, hapus room
+        }
+      });
+
       document.getElementById("setup").style.display = "none";
       document.getElementById("game").style.display = "block";
-
       setupListeners();
     });
   });
 }
+
 
 
   // Tampilkan hasil realtime
