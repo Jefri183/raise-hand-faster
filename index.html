@@ -11,11 +11,12 @@
 <body>
   <h1>Game Angkat Tangan</h1>
 
-  <div id="setup">
-    <input type="text" id="username" placeholder="Masukkan Nama Anda">
-    <input type="text" id="roomId" placeholder="Masukkan Kode Room (bebas)">
-    <button onclick="joinRoom()">Gabung</button>
-  </div>
+<div id="setup">
+  <input type="text" id="username" placeholder="Masukkan Nama Anda">
+  <input type="text" id="roomId" placeholder="Masukkan Kode Room (bebas)">
+  <button onclick="createRoom()">Buat Room</button>
+  <button onclick="joinRoom()">Gabung Room</button>
+</div>
 
   <div id="game" style="display:none;">
     <p id="status">Menunggu pemain lain...</p>
