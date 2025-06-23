@@ -103,3 +103,21 @@ function tap() {
     });
   }, 1000); // beri delay untuk tunggu semua pemain submit
 }
+
+function resetGame() {
+  if (!roomId) return alert("Belum masuk room.");
+
+  const roomRef = db.ref(`rooms/${roomId}`);
+
+  // Hapus signal, responses, dan result
+  roomRef.child("signal").remove();
+  roomRef.child("responses").remove();
+  roomRef.child("result").remove();
+
+  // Reset tampilan
+  tapped = false;
+  document.getElementById("result").innerText = "";
+  document.getElementById("status").innerText = "Game telah di-reset.";
+  document.getElementById("tapBtn").disabled = true;
+  document.getElementById("startBtn").style.display = "none";
+}
